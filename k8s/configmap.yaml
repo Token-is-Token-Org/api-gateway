@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-gateway-config
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  CORS_ORIGINS: "https://example.com"
+  RATE_LIMIT_MAX: "100"

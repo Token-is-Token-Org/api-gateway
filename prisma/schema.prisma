@@ -1,0 +1,80 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  address   String   @unique // 钱包地址
+  quota     Int      @default(1000) // 每日配额
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  requests  Request[]
+  usages    Usage[]
+}
+
+model Provider {
+  id              String         @id @default(cuid())
+  name            String         @unique
+  endpoint        String
+  models          String[] // 支持的模型列表
+  status          ProviderStatus @default(ACTIVE)
+  avgResponseTime Int? // 平均响应时间(ms)
+  successRate     Float? // 成功率 0-1
+  pricePerToken   Float? // 每token价格
+  apiKeyEnc       String? // 加密的API密钥
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  requests        Request[]
+  usages          Usage[]
+
+  @@index([status])
+  @@index([models])
+}
+
+model Request {
+  id           String   @id @default(cuid())
+  userId       String
+  providerId   String
+  model        String
+  inputTokens  Int      @default(0)
+  outputTokens Int      @default(0)
+  status       String   @default("pending") // pending, completed, failed
+  error        String?
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id])
+  provider     Provider @relation(fields: [providerId], references: [id])
+
+  @@index([userId])
+  @@index([providerId])
+  @@index([createdAt])
+}
+
+model Usage {
+  id         String   @id @default(cuid())
+  userId     String
+  providerId String
+  date       DateTime @db.Date
+  requests   Int      @default(0)
+  tokens     Int      @default(0)
+  cost       Float    @default(0)
+  user       User     @relation(fields: [userId], references: [id])
+  provider   Provider @relation(fields: [providerId], references: [id])
+
+  @@unique([userId, providerId, date])
+  @@index([userId])
+  @@index([providerId])
+}
+
+enum ProviderStatus {
+  ACTIVE
+  INACTIVE
+  DEGRADED
+}
